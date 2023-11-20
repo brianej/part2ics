@@ -51,6 +51,12 @@ int write_to_memory(uint32_t pa)
  *********************************************************
 */
 
+uint32_t valid_getter(uint32_t pa){
+	uint32_t offset;
+	uint32_t valid;
+	
+}
+
 /*
  * Initialize the cache depending on the input parameters S, A, and B 
  * and the statistics counter. The cache is declared in as extern in 
@@ -157,7 +163,7 @@ op_result_t read_from_cache(uint32_t pa)
 	// Loops through the needed set to search for empty line
 	if (loop){
 		for (u_int32_t i = 0; i < set_size; i++){
-			if (cache[inset][i].valid == 0){
+			if (cache[inset][i].tag == pa){
 
 			// Already at the end of the cache and everything is already full
 			} else if ((i + 1) == set_size){
