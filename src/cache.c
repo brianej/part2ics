@@ -190,7 +190,36 @@ op_result_t read_from_cache(uint32_t pa)
  */
 op_result_t write_to_cache(uint32_t pa)
 {
-	return ERROR;
+	// If it needs the loop
+	int loop = 0;
+	// Which set to look in
+	u_int32_t inset;
+
+	u_int32_t tag = tag_getter(pa);
+
+	if (cache_associativity == 1){
+
+	// Fully associative
+	} else if (cache_associativity == 2){
+		loop = 1;
+	} else if (cache_associativity == 3){
+		loop = 1;
+	} else if (cache_associativity == 4){
+		loop = 1;
+	}
+	
+	// Loops through the needed set to search for empty line
+	if (loop){
+		for (u_int32_t i = 0; i < set_size; i++){
+			if (cache[inset][i].tag == tag){
+				dummy_write_page_to_disk(char *page_data);
+				return HIT;
+			// Already at the end of the cache and everything is already full
+			} else if ((i + 1) == set_size){
+
+			}
+		}
+	}
 }
 
 // Process the S parameter properly and initialize `cache_size`.
