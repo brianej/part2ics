@@ -56,7 +56,46 @@ int write_to_memory(uint32_t pa)
  */
 void initialize_cache()
 {
-	return; 
+	uint32_t line = cache_size / cache_block_size;
+
+	u_int32_t set_size;
+
+	// Sets how many sets on associativity
+	if (cache_associativity == 3){
+		set_size = 2;
+	} else if(cache_associativity == 4){
+		set_size = 4;
+	} else if(cache_associativity == 1){
+		set_size = 1;
+	} else{
+		set_size = line;
+	}
+
+	set = line / set_size;
+
+	cache = malloc(set * sizeof(block_t*));
+
+	// Allocating lines for each set
+	for (int i = 0; i < set; i++){
+        *(cache + i) = malloc(set_size * sizeof(block_t));
+    }
+
+	// Initialising each variable of block in every set
+	for (int i = 0; i < set; i++){
+		for (int j = 0; j < set_size; j++){
+			cache[i][j].valid = 0;
+			cache[i][j].dirty = 0;
+			cache[i][j].tag = 0;
+		}
+	}
+
+	cache_total_accesses = 0;
+	cache_hits = 0;
+	cache_misses = 0;
+	cache_read_accesses = 0;
+	cache_read_hits = 0;
+	cache_write_accesses = 0;
+	cache_write_hits = 0;
 }
 
 /*
@@ -64,7 +103,17 @@ void initialize_cache()
  */
 void free_cache()
 {
-	return;
+	uint32_t line = cache_size / cache_block_size;
+
+	// Frees each of the double pointer
+	for (int i = 0; i < line; i++) {
+        free(cache[i]);
+    }
+
+	// Clears the cache
+	free(cache);
+
+    cache = NULL;
 }
 
 // Print cache statistics.
@@ -88,7 +137,16 @@ void print_cache_statistics()
 
 op_result_t read_from_cache(uint32_t pa) 
 {
-	return ERROR;
+	if (cache_associativity == 1){
+
+	// Fully associative
+	} else if (cache_associativity == 2){
+		for i 
+	} else if (cache_associativity == 3){
+
+	} else if (cache_associativity == 4){
+
+	}
 }
 
 /*
@@ -105,21 +163,36 @@ op_result_t write_to_cache(uint32_t pa)
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_S(int opt, char *optarg)
 {
-	return 0;
+	if (opt == 'S'){
+		cache_size = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_A(int opt, char *optarg)
 {
-	return 0;
+	if (opt == 'A'){
+		cache_associativity = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // Process the B parameter properly and initialize `cache_block_size`.
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_B(int opt, char *optarg)
 {
-	return 0;
+	if (opt == 'B'){
+		cache_block_size = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // When verbose is true, print the details of each operation -- MISS or HIT.
@@ -134,5 +207,21 @@ void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 // Return 0 when everything is good. Otherwise return -1.
 int check_cache_parameters_valid()
 {
+	if ((cache_size == 0) || (cache_associativity == 0) ||(cache_block_size == 0)){
+		return -1;
+	}
+
+	if (cache_size % 2 != 0){
+		return -1;
+	}
+
+	if ((cache_associativity < 0) || (cache_associativity > 4)){
+		return -1;
+	}
+
+	if ((cache_block_size < 4) || (cache_block_size % 4 != 0) || (cache_size % cache_block_size != 0)){
+		return -1;
+	}
+
 	return 0;
 }
