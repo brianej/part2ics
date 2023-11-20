@@ -1,5 +1,6 @@
 #include "cache.h"
 #include <stdlib.h>
+#include <math.h>
 
 // Cache statistics counters.
 uint32_t cache_total_accesses;
@@ -51,10 +52,16 @@ int write_to_memory(uint32_t pa)
  *********************************************************
 */
 
-uint32_t valid_getter(uint32_t pa){
-	uint32_t offset;
-	uint32_t valid;
-	
+uint32_t tag_getter(uint32_t pa){
+
+	// The offset in bits
+	uint32_t offset = log2(cache_block_size);
+
+	// Hexadecimal character offset
+	uint32_t hex_off = offset / 4;
+
+	return (uint32_t)(pa/(pow(10,hex_off)));
+
 }
 
 /*
@@ -148,6 +155,8 @@ op_result_t read_from_cache(uint32_t pa)
 	// Which set to look in
 	u_int32_t inset;
 
+	u_int32_t tag = tag_getter(pa);
+
 	if (cache_associativity == 1){
 
 	// Fully associative
@@ -163,8 +172,9 @@ op_result_t read_from_cache(uint32_t pa)
 	// Loops through the needed set to search for empty line
 	if (loop){
 		for (u_int32_t i = 0; i < set_size; i++){
-			if (cache[inset][i].tag == pa){
-
+			if (cache[inset][i].tag == tag){
+				dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
+				return HIT;
 			// Already at the end of the cache and everything is already full
 			} else if ((i + 1) == set_size){
 
