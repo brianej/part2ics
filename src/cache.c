@@ -52,6 +52,7 @@ int write_to_memory(uint32_t pa)
  *********************************************************
 */
 
+// Gets the tag of the address
 uint32_t tag_getter(uint32_t pa, uint32_t associativity){
 	// The offset in bits
 	uint32_t offset = log2(cache_block_size);
@@ -71,6 +72,7 @@ uint32_t tag_getter(uint32_t pa, uint32_t associativity){
 	return tag;
 }
 
+// Gets the set where to look in
 uint32_t index_getter(uint32_t pa, uint32_t set){
 
 	// The offset in bits
@@ -97,6 +99,8 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
 	return index;
 }
 
+// LRU
+//uint32_t lru()
 
 /*
  * Initialize the cache depending on the input parameters S, A, and B 
@@ -237,7 +241,7 @@ op_result_t read_from_cache(uint32_t pa)
 							cache[inset][j].tag = tag;
 						// When theres no more empty space, use lru  
 						} else if ((j + 1) == set_size){
-							
+						
 						}
 					}
 				cache_misses++;
