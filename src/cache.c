@@ -58,10 +58,9 @@ uint32_t tag_getter(uint32_t pa){
 	uint32_t offset = log2(cache_block_size);
 
 	// Hexadecimal character offset
-	uint32_t hex_off = offset / 4;
+	 uint32_t tag = pa >> offset;
 
-	return (uint32_t)(pa/(pow(10,hex_off)));
-
+	return tag;
 }
 
 /*
@@ -147,9 +146,11 @@ void print_cache_statistics()
  * Since this is a simulation, there is no data. Ignore the data part.
  * The return value is always a HIT or a MISS and never an ERROR.
  */
-
 op_result_t read_from_cache(uint32_t pa) 
 {
+	cache_total_accesses++;
+	cache_read_accesses++;
+
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
@@ -169,16 +170,54 @@ op_result_t read_from_cache(uint32_t pa)
 		loop = 1;
 	}
 	
-	// Loops through the needed set to search for empty line
+	// Loops through the needed set to search for empty line for associativity > 1
 	if (loop){
 		for (u_int32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
-				dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
-				return HIT;
+				if (cache[inset][i].valid == 1){
+					cache_hits++;
+					cache_read_hits++;
+					dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
+					return HIT;
+				}else {
+					for (u_int32_t j = 0; j < set_size; j++){
+						if (cache[inset][i].valid == 0){
+							cache[inset][j].valid = 1;
+							cache[inset][j].tag = tag;
+						// When theres no more empty space, use lru
+						} else if ((j + 1) == set_size){
+							
+						}
+					}
+					cache_misses++;
+					return MISS;
+				}
 			// Already at the end of the cache and everything is already full
 			} else if ((i + 1) == set_size){
-
+				for (u_int32_t j = 0; j < set_size; j++){
+						if (cache[inset][i].valid == 0){
+							cache[inset][j].valid = 1;
+							cache[inset][j].tag = tag;
+						// When theres no more empty space, use lru  
+						} else if ((j + 1) == set_size){
+							
+						}
+					}
+				cache_misses++;
+				return MISS;
 			}
+		}
+	// For associativity == 1
+	} else {
+		if ((cache[inset][idx].tag == tag) && (cache[inset][idx].valid == 1)){
+			cache_hits++;
+			cache_read_hits++;
+			dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
+			return HIT;	
+		}else {
+			cache[inset][idx].tag == tag;
+			cache[inset][idx].valid == 1;
+			return MISS;
 		}
 	}
 }
@@ -190,6 +229,9 @@ op_result_t read_from_cache(uint32_t pa)
  */
 op_result_t write_to_cache(uint32_t pa)
 {
+	cache_total_accesses++;
+	cache_write_accesses++;
+
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
@@ -212,12 +254,30 @@ op_result_t write_to_cache(uint32_t pa)
 	if (loop){
 		for (u_int32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
-				dummy_write_page_to_disk(char *page_data);
-				return HIT;
+				if (cache[inset][i].valid == 1){
+					cache_write_hits++;
+					dummy_write_page_to_disk(char *page_data);
+					return HIT;
+				}else {
+					cache_hits++;
+					cache_misses++;
+					return MISS;
+				}
 			// Already at the end of the cache and everything is already full
 			} else if ((i + 1) == set_size){
 
 			}
+		}
+	}else {
+		if ((cache[inset][idx].tag == tag) && (cache[inset][idx].valid == 1)){
+			cache_hits++;
+			cache_read_hits++;
+			dummy_write_page_to_disk(char *page_data);
+			return HIT;	
+		}else {
+			cache[inset][idx].tag == tag;
+			cache[inset][idx].valid == 1;
+			return MISS;
 		}
 	}
 }
@@ -261,7 +321,11 @@ int process_arg_B(int opt, char *optarg)
 // When verbose is true, print the details of each operation -- MISS or HIT.
 void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 {
-	if (ret == ERROR) {
+	if (ret == MISS){
+		printf(entry.accesstype,entry.adress,"CACHE-MISS");
+	} else if(ret == HIT){
+		printf(entry.accesstype,entry.adress,"CACHE-HIT");
+	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
 }
@@ -271,6 +335,10 @@ void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 int check_cache_parameters_valid()
 {
 	if ((cache_size == 0) || (cache_associativity == 0) ||(cache_block_size == 0)){
+		return -1;
+	}
+
+	if ((cache_size == NULL) || (cache_associativity == NULL) ||(cache_block_size == NULL)){
 		return -1;
 	}
 
