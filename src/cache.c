@@ -52,16 +52,51 @@ int write_to_memory(uint32_t pa)
  *********************************************************
 */
 
-uint32_t tag_getter(uint32_t pa){
+uint32_t tag_getter(uint32_t pa, uint32_t associativity){
+	// The offset in bits
+	uint32_t offset = log2(cache_block_size);
+
+	// Right shift till only tag left
+	uint32_t tag = pa >> offset;
+
+	// When cache has an index
+	if (associativity != 2){
+		// The index in bits
+		uint32_t idx = log2(set);
+
+		// Right shift till only tag left
+		tag = tag >> idx;
+	}
+
+	return tag;
+}
+
+uint32_t index_getter(uint32_t pa, uint32_t set){
 
 	// The offset in bits
 	uint32_t offset = log2(cache_block_size);
 
-	// Hexadecimal character offset
-	 uint32_t tag = pa >> offset;
+	// The index in bits
+	uint32_t idx = log2(set);
 
-	return tag;
+	// Amount of bits in the address
+	uint32_t amountbit = 20;
+
+	// Right shift till only tag left
+	uint32_t tag = pa >> offset;
+
+	// Gets the index from the tag
+	uint32_t index  = tag << (amountbit - idx - offset);
+
+	// Removing the zeroes 
+	index = index / pow(10,(amountbit - idx));
+
+	// Gets the index depending on set
+	index = index % set;
+
+	return index;
 }
+
 
 /*
  * Initialize the cache depending on the input parameters S, A, and B 
@@ -156,18 +191,20 @@ op_result_t read_from_cache(uint32_t pa)
 	// Which set to look in
 	u_int32_t inset;
 
-	u_int32_t tag = tag_getter(pa);
+	u_int32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
-
+		inset =  index_getter(pa,set);
 	// Fully associative
 	} else if (cache_associativity == 2){
 		loop = 1;
-
+		inset = 0;
 	} else if (cache_associativity == 3){
 		loop = 1;
+		inset =  index_getter(pa,set);
 	} else if (cache_associativity == 4){
 		loop = 1;
+		inset =  index_getter(pa,set);
 	}
 	
 	// Loops through the needed set to search for empty line for associativity > 1
@@ -209,14 +246,14 @@ op_result_t read_from_cache(uint32_t pa)
 		}
 	// For associativity == 1
 	} else {
-		if ((cache[inset][idx].tag == tag) && (cache[inset][idx].valid == 1)){
+		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
 			cache_hits++;
 			cache_read_hits++;
 			dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
 			return HIT;	
 		}else {
-			cache[inset][idx].tag == tag;
-			cache[inset][idx].valid == 1;
+			cache[inset][0].tag = tag;
+			cache[inset][0].valid = 1;
 			return MISS;
 		}
 	}
@@ -237,17 +274,20 @@ op_result_t write_to_cache(uint32_t pa)
 	// Which set to look in
 	u_int32_t inset;
 
-	u_int32_t tag = tag_getter(pa);
+	u_int32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
-
+		inset =  index_getter(pa,set);
 	// Fully associative
 	} else if (cache_associativity == 2){
 		loop = 1;
+		inset = 0;
 	} else if (cache_associativity == 3){
 		loop = 1;
+		inset =  index_getter(pa,set);
 	} else if (cache_associativity == 4){
 		loop = 1;
+		inset =  index_getter(pa,set);
 	}
 	
 	// Loops through the needed set to search for empty line
@@ -268,15 +308,16 @@ op_result_t write_to_cache(uint32_t pa)
 
 			}
 		}
+	// For associativity == 1
 	}else {
-		if ((cache[inset][idx].tag == tag) && (cache[inset][idx].valid == 1)){
+		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
 			cache_hits++;
 			cache_read_hits++;
 			dummy_write_page_to_disk(char *page_data);
 			return HIT;	
 		}else {
-			cache[inset][idx].tag == tag;
-			cache[inset][idx].valid == 1;
+			cache[inset][0].tag = tag;
+			cache[inset][0].valid = 1;
 			return MISS;
 		}
 	}
@@ -318,13 +359,22 @@ int process_arg_B(int opt, char *optarg)
 	return -1;
 }
 
+char* accestype_string(access_t var){
+	if (var == READ){
+		return "R";
+	}else if(var == WRITE){
+		return "W";
+	}else if(var == INVALID){
+		return "I";
+	}
+}
 // When verbose is true, print the details of each operation -- MISS or HIT.
 void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 {
 	if (ret == MISS){
-		printf(entry.accesstype,entry.adress,"CACHE-MISS");
+		printf(accestype_string(entry.accesstype),entry.address,"CACHE-MISS");
 	} else if(ret == HIT){
-		printf(entry.accesstype,entry.adress,"CACHE-HIT");
+		printf(accestype_string(entry.accesstype),entry.address,"CACHE-HIT");
 	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
@@ -335,10 +385,6 @@ void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 int check_cache_parameters_valid()
 {
 	if ((cache_size == 0) || (cache_associativity == 0) ||(cache_block_size == 0)){
-		return -1;
-	}
-
-	if ((cache_size == NULL) || (cache_associativity == NULL) ||(cache_block_size == NULL)){
 		return -1;
 	}
 
