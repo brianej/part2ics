@@ -218,33 +218,30 @@ op_result_t read_from_cache(uint32_t pa)
 				if (cache[inset][i].valid == 1){
 					cache_hits++;
 					cache_read_hits++;
-					dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
 					return HIT;
+				// Find empty spot to write it into cache
 				}else {
 					for (u_int32_t j = 0; j < set_size; j++){
-						if (cache[inset][i].valid == 0){
+						// When theres empty space in cache
+						if (cache[inset][j].valid == 0){
 							cache[inset][j].valid = 1;
 							cache[inset][j].tag = tag;
+							cache[inset][j].dirty = 0;
 						// When theres no more empty space, use lru
 						} else if ((j + 1) == set_size){
 							
 						}
 					}
 					cache_misses++;
+					dummy_read_page_from_disk(pa);
 					return MISS;
 				}
-			// Already at the end of the cache and everything is already full
+			// Already at the end of the cache and everything is already full, use lru
 			} else if ((i + 1) == set_size){
-				for (u_int32_t j = 0; j < set_size; j++){
-						if (cache[inset][i].valid == 0){
-							cache[inset][j].valid = 1;
-							cache[inset][j].tag = tag;
-						// When theres no more empty space, use lru  
-						} else if ((j + 1) == set_size){
-						
-						}
-					}
+
+				
 				cache_misses++;
+				dummy_read_page_from_disk(pa);
 				return MISS;
 			}
 		}
@@ -253,11 +250,12 @@ op_result_t read_from_cache(uint32_t pa)
 		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
 			cache_hits++;
 			cache_read_hits++;
-			dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
 			return HIT;	
 		}else {
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
+			cache[inset][0].dirty = 0;
+			dummy_read_page_from_disk(pa);
 			return MISS;
 		}
 	}
@@ -300,16 +298,30 @@ op_result_t write_to_cache(uint32_t pa)
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
 					cache_write_hits++;
-					dummy_write_page_to_disk(char *page_data);
 					return HIT;
+				// Find empty spot to write it into cache
 				}else {
-					cache_hits++;
+					for (u_int32_t j = 0; j < set_size; j++){
+						// When theres empty space in cache
+						if (cache[inset][j].valid == 0){
+							cache[inset][j].valid = 1;
+							cache[inset][j].tag = tag;
+							cache[inset][j].dirty = 1;
+						// When theres no more empty space, use lru
+						} else if ((j + 1) == set_size){
+							
+						}
+					}
 					cache_misses++;
+					dummy_write_page_to_disk(pa);
 					return MISS;
 				}
-			// Already at the end of the cache and everything is already full
+			// Already at the end of the cache and everything is already full, use lru
 			} else if ((i + 1) == set_size){
 
+				cache_misses++;
+				dummy_write_page_to_disk(pa);
+				return MISS;
 			}
 		}
 	// For associativity == 1
@@ -317,11 +329,15 @@ op_result_t write_to_cache(uint32_t pa)
 		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
 			cache_hits++;
 			cache_read_hits++;
-			dummy_write_page_to_disk(char *page_data);
 			return HIT;	
 		}else {
+			if (cache[inset][0].dirty = 1){
+				dummy_write_page_to_disk(pa);
+			}
+
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
+			cache[inset][0].dirty = 1;
 			return MISS;
 		}
 	}
@@ -363,6 +379,7 @@ int process_arg_B(int opt, char *optarg)
 	return -1;
 }
 
+// Returns string for access type
 char* accestype_string(access_t var){
 	if (var == READ){
 		return "R";
@@ -372,16 +389,21 @@ char* accestype_string(access_t var){
 		return "I";
 	}
 }
+
 // When verbose is true, print the details of each operation -- MISS or HIT.
 void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 {
 	if (ret == MISS){
-		printf(accestype_string(entry.accesstype),entry.address,"CACHE-MISS");
+		printf(accestype_string(entry.accesstype),entry.address,"MISS");
 	} else if(ret == HIT){
-		printf(accestype_string(entry.accesstype),entry.address,"CACHE-HIT");
+		printf(accestype_string(entry.accesstype),entry.address,"HIT");
 	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
+}
+
+uint32_t power2(uint32_t n) {
+    return n > 0 && ((int)log2(n) == log2(n));
 }
 
 // Check if all the necessary paramaters for the cache are provided and valid.
@@ -392,7 +414,7 @@ int check_cache_parameters_valid()
 		return -1;
 	}
 
-	if (cache_size % 2 != 0){
+	if (power2(cache_size)){
 		return -1;
 	}
 
