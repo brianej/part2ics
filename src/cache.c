@@ -297,6 +297,9 @@ op_result_t write_to_cache(uint32_t pa)
 		for (u_int32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
+					if (cache[inset][i].dirty = 0){
+						cache[inset][i].dirty = 1;
+					}
 					cache_write_hits++;
 					return HIT;
 				// Find empty spot to write it into cache
@@ -327,6 +330,9 @@ op_result_t write_to_cache(uint32_t pa)
 	// For associativity == 1
 	}else {
 		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
+			if (cache[inset][0].dirty = 0){
+				cache[inset][0].dirty = 1;
+			}
 			cache_hits++;
 			cache_read_hits++;
 			return HIT;	
@@ -334,7 +340,6 @@ op_result_t write_to_cache(uint32_t pa)
 			if (cache[inset][0].dirty = 1){
 				dummy_write_page_to_disk(pa);
 			}
-
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
 			cache[inset][0].dirty = 1;
@@ -394,9 +399,9 @@ char* accestype_string(access_t var){
 void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 {
 	if (ret == MISS){
-		printf(accestype_string(entry.accesstype),entry.address,"MISS");
+		printf(accestype_string(entry.accesstype),entry.address,"CACHE-MISS");
 	} else if(ret == HIT){
-		printf(accestype_string(entry.accesstype),entry.address,"HIT");
+		printf(accestype_string(entry.accesstype),entry.address,"CACHE-HIT");
 	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
