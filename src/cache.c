@@ -18,7 +18,7 @@ uint32_t cache_block_size;
 
 block_t **cache;
 uint32_t set;
-u_int32_t set_size;
+uint32_t set_size;
 
 /*
  * Perform a read from the memory for a particular address.
@@ -100,7 +100,25 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
 }
 
 // LRU
-//uint32_t lru()
+ void LRU(block_t* Set[],block_t entry)
+ {
+ 	// assign last value the new block
+ 	Set[set_size-1].tag = entry.tag;
+ 	Set[set_size-1].valid = entry.valid;
+	Set[set_size-1].dirty = entry.dirty;
+ }
+
+ // recently used 
+ void recently_used(block_t* Set[],int index)
+ {
+ 	block_t temp = Set[index];
+
+ 	for(int i = index; i > 0;i--){
+ 		Set[i]= Set[i-1];
+ 	}
+
+ 	Set[0] = temp;
+ }
 
 /*
  * Initialize the cache depending on the input parameters S, A, and B 
@@ -193,9 +211,9 @@ op_result_t read_from_cache(uint32_t pa)
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
-	u_int32_t inset;
+	uint32_t inset;
 
-	u_int32_t tag = tag_getter(pa,cache_associativity);
+	uint32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
 		inset =  index_getter(pa,set);
@@ -213,35 +231,46 @@ op_result_t read_from_cache(uint32_t pa)
 	
 	// Loops through the needed set to search for empty line for associativity > 1
 	if (loop){
-		for (u_int32_t i = 0; i < set_size; i++){
+		for (uint32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
+					recently_used(cache[inset],i);
 					cache_hits++;
 					cache_read_hits++;
 					return HIT;
 				// Find empty spot to write it into cache
 				}else {
-					for (u_int32_t j = 0; j < set_size; j++){
+					for (uint32_t j = 0; j < set_size; j++){
 						// When theres empty space in cache
 						if (cache[inset][j].valid == 0){
 							cache[inset][j].valid = 1;
 							cache[inset][j].tag = tag;
 							cache[inset][j].dirty = 0;
+							recently_used(cache[inset],j);
 						// When theres no more empty space, use lru
 						} else if ((j + 1) == set_size){
-							
+							block_t entry;
+							entry.tag = tag;
+							entry.valid = 1;
+							entry.dirty = 0;
+							LRU(cache[inset],entry);
+							recently_used(cache[inset],(set_size-1));
 						}
 					}
 					cache_misses++;
-					dummy_read_page_from_disk(pa);
+					read_from_memory(pa);
 					return MISS;
 				}
 			// Already at the end of the cache and everything is already full, use lru
 			} else if ((i + 1) == set_size){
-
-				
+				block_t entry;
+				entry.tag = tag;
+				entry.valid = 1;
+				entry.dirty = 0;
+				LRU(cache[inset],entry);
+				recently_used(cache[inset],(set_size-1));
 				cache_misses++;
-				dummy_read_page_from_disk(pa);
+				read_from_memory(pa);
 				return MISS;
 			}
 		}
@@ -255,7 +284,7 @@ op_result_t read_from_cache(uint32_t pa)
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
 			cache[inset][0].dirty = 0;
-			dummy_read_page_from_disk(pa);
+			read_from_memory(pa);
 			return MISS;
 		}
 	}
@@ -274,9 +303,9 @@ op_result_t write_to_cache(uint32_t pa)
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
-	u_int32_t inset;
+	uint32_t inset;
 
-	u_int32_t tag = tag_getter(pa,cache_associativity);
+	uint32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
 		inset =  index_getter(pa,set);
@@ -294,36 +323,48 @@ op_result_t write_to_cache(uint32_t pa)
 	
 	// Loops through the needed set to search for empty line
 	if (loop){
-		for (u_int32_t i = 0; i < set_size; i++){
+		for (uint32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
 					if (cache[inset][i].dirty = 0){
 						cache[inset][i].dirty = 1;
 					}
+					recently_used(cache[inset],i);
 					cache_write_hits++;
 					return HIT;
 				// Find empty spot to write it into cache
 				}else {
-					for (u_int32_t j = 0; j < set_size; j++){
+					for (uint32_t j = 0; j < set_size; j++){
 						// When theres empty space in cache
 						if (cache[inset][j].valid == 0){
 							cache[inset][j].valid = 1;
 							cache[inset][j].tag = tag;
 							cache[inset][j].dirty = 1;
+							recently_used(cache[inset],j);
 						// When theres no more empty space, use lru
 						} else if ((j + 1) == set_size){
-							
+							block_t entry;
+							entry.tag = tag;
+							entry.valid = 1;
+							entry.dirty = 1;
+							LRU(cache[inset],entry);
+							recently_used(cache[inset],(set_size-1));
 						}
 					}
 					cache_misses++;
-					dummy_write_page_to_disk(pa);
+					write_to_memory(pa);
 					return MISS;
 				}
 			// Already at the end of the cache and everything is already full, use lru
 			} else if ((i + 1) == set_size){
-
+				block_t entry;
+				entry.tag = tag;
+				entry.valid = 1;
+				entry.dirty = 1;
+				LRU(cache[inset],entry);
+				recently_used(cache[inset],(set_size-1));
 				cache_misses++;
-				dummy_write_page_to_disk(pa);
+				write_to_memory(pa);
 				return MISS;
 			}
 		}
@@ -338,7 +379,7 @@ op_result_t write_to_cache(uint32_t pa)
 			return HIT;	
 		}else {
 			if (cache[inset][0].dirty = 1){
-				dummy_write_page_to_disk(pa);
+				write_to_memory(pa);
 			}
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
