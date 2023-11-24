@@ -26,7 +26,7 @@ void initialize_pt_system()
  * The "page_table" is declared in as extern in include/pt.h file.
  */
 void init_pt() {
-    return;
+    page_table = malloc(256 * sizeof(pt_entry_t));
 }
 
 void init_free_page_list(page_t** free_page_list){
