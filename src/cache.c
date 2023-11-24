@@ -18,7 +18,7 @@ uint32_t cache_block_size;
 
 block_t **cache;
 uint32_t set;
-u_int32_t set_size;
+uint32_t set_size;
 
 /*
  * Perform a read from the memory for a particular address.
@@ -100,7 +100,27 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
 }
 
 // LRU
-//uint32_t lru()
+void LRU(block_t* Set[],uint32_t newTag)
+{
+	// free last value on the list
+	free(Set[(set_size-1)]);
+	// assign last value the new tag
+	Set[set_size-1].tag = newTag;
+	Set[set_size-1].valid = 1;
+
+}
+
+// recently used 
+void recently_used(block_t* Set[],int index)
+{
+	block_t temp = Set[index];
+
+	for(int i = index; i > 0;i--){
+		Set[i]= Set[i-1];
+	}
+	Set[0] = temp;
+
+}
 
 /*
  * Initialize the cache depending on the input parameters S, A, and B 
@@ -193,9 +213,9 @@ op_result_t read_from_cache(uint32_t pa)
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
-	u_int32_t inset;
+	uint32_t inset;
 
-	u_int32_t tag = tag_getter(pa,cache_associativity);
+	uint32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
 		inset =  index_getter(pa,set);
@@ -213,7 +233,7 @@ op_result_t read_from_cache(uint32_t pa)
 	
 	// Loops through the needed set to search for empty line for associativity > 1
 	if (loop){
-		for (u_int32_t i = 0; i < set_size; i++){
+		for (uint32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
 					cache_hits++;
@@ -221,7 +241,7 @@ op_result_t read_from_cache(uint32_t pa)
 					dummy_read_page_from_disk(char *page_data, uint32_t disk_block);
 					return HIT;
 				}else {
-					for (u_int32_t j = 0; j < set_size; j++){
+					for (uint32_t j = 0; j < set_size; j++){
 						if (cache[inset][i].valid == 0){
 							cache[inset][j].valid = 1;
 							cache[inset][j].tag = tag;
@@ -235,7 +255,7 @@ op_result_t read_from_cache(uint32_t pa)
 				}
 			// Already at the end of the cache and everything is already full
 			} else if ((i + 1) == set_size){
-				for (u_int32_t j = 0; j < set_size; j++){
+				for (uint32_t j = 0; j < set_size; j++){
 						if (cache[inset][i].valid == 0){
 							cache[inset][j].valid = 1;
 							cache[inset][j].tag = tag;
@@ -276,9 +296,9 @@ op_result_t write_to_cache(uint32_t pa)
 	// If it needs the loop
 	int loop = 0;
 	// Which set to look in
-	u_int32_t inset;
+	uint32_t inset;
 
-	u_int32_t tag = tag_getter(pa,cache_associativity);
+	uint32_t tag = tag_getter(pa,cache_associativity);
 
 	if (cache_associativity == 1){
 		inset =  index_getter(pa,set);
@@ -296,7 +316,7 @@ op_result_t write_to_cache(uint32_t pa)
 	
 	// Loops through the needed set to search for empty line
 	if (loop){
-		for (u_int32_t i = 0; i < set_size; i++){
+		for (uint32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
 					cache_write_hits++;
