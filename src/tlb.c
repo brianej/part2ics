@@ -16,6 +16,18 @@ tlb_entry_t** tlb;
 // Return 0 when everything is good. Otherwise return -1.
 int check_tlb_parameters_valid()
 {
+	if ((tlb_entries == 0) || (tlb_associativity == 0) ){
+		return -1;
+	}
+
+	if ((tlb_associativity < 0) || (tlb_associativity > 4)){
+		return -1;
+	}
+
+	if ((tlb_entries < 2)){
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -32,14 +44,24 @@ void initialize_tlb()
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_T(int opt, char *optarg)
 {
-    return 0;
+    if (opt == 'T'){
+		tlb_entries = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // Process the A parameter properly and initialize `tlb_associativity`.
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_L(int opt, char *optarg)
 {
-    return 0;
+    if (opt == 'L'){
+		tlb_associativity = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // Check if the tlb hit or miss.

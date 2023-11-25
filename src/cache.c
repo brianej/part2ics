@@ -393,12 +393,7 @@ op_result_t write_to_cache(uint32_t pa)
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_S(int opt, char *optarg)
 {
-	if (opt == 'S'){
-		cache_size = (uint32_t)atoi(optarg);
-		return 0;
-	}
-
-	return -1;
+	
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
