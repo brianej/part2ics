@@ -11,6 +11,8 @@ uint32_t tlb_hits;
 uint32_t tlb_misses;
 
 tlb_entry_t** tlb;
+uint32_t set_size;
+uint32_t set;
 
 // Check if all the necessary paramaters for the tlb are provided and valid.
 // Return 0 when everything is good. Otherwise return -1.
@@ -37,8 +39,43 @@ int check_tlb_parameters_valid()
  */
 void initialize_tlb()
 {
-	return; 
+
+	// Sets how many sets on associativity
+	if (tlb_associativity == 3){
+		set_size = 2;
+	} else if(tlb_associativity == 4){
+		set_size = 4;
+	} else if(tlb_associativity == 1){
+		set_size = 1;
+	} else{
+		set_size = tlb_entries;
+	}
+
+	set = tlb_entries / set_size;
+
+	tlb = malloc(set * sizeof(tlb_entry_t*));
+
+	// Allocating lines for each set
+	for (int i = 0; i < set; i++){
+        *(tlb + i) = malloc(set_size * sizeof(tlb_entry_t));
+    }
+
+	// Initialising each variable of block in every set
+	for (int i = 0; i < set; i++){
+		for (int j = 0; j < set_size; j++){
+			tbl[i][j].valid = 0;
+			tbl[i][j].dirty = 0;
+			tbl[i][j].VPN = 0;
+            tlb[i][j].PPN = 0;
+		}
+	}
+    tlb_total_accesses = 0;
+    tlb_hits = 0;
+    tlb_misses = 0;
+
+	
 }
+
 
 // Process the T parameter properly and initialize `tlb_entries`.
 // Return 0 when everything is good. Otherwise return -1.
