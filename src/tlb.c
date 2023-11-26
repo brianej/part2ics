@@ -105,6 +105,7 @@ int process_arg_L(int opt, char *optarg)
 // Extract the VPN from the address and use it.
 // Keep associativity in mind while searching.
 int check_tlb(uint32_t address){
+
     //return -1 if the entry is missing or valid bit is 0 aka tlb miss
     //return PPN if the entry is valid and TAG matches aka tlb hit
     return 0;
@@ -135,4 +136,30 @@ void print_tlb_statistics(){
     printf("total accesses: %d\n", tlb_total_accesses);
     printf("hits: %d\n", tlb_hits);
     printf("misses: %d\n", tlb_misses);
+}
+
+uint32_t tag_getter(uint32_t address)
+{
+    // offset for 4KB is 12
+    uint32_t vpn = address << 12
+    //check for assocativity 
+    if (tlb_associativity != 2){
+        // shifting tag to remove index bits for assocativities
+		if (tlb_associativity == 1){
+            tag = tag >> 0;
+        }
+        else if(tlb_associativity == 3){
+            tag = tag >> 1;
+        }
+        else if(tlb_associativity == 4){
+            tag = tag >> 2;
+        }
+    }
+    return tag
+}
+uint32_t index_getter(uint32_t pa){
+
+	// offset for 4KB is 12
+	uint32_t offset = 12;
+
 }
