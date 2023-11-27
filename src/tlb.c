@@ -141,25 +141,40 @@ void print_tlb_statistics(){
 uint32_t tag_getter(uint32_t address)
 {
     // offset for 4KB is 12
-    uint32_t vpn = address << 12
-    //check for assocativity 
-    if (tlb_associativity != 2){
-        // shifting tag to remove index bits for assocativities
-		if (tlb_associativity == 1){
-            tag = tag >> 0;
-        }
-        else if(tlb_associativity == 3){
-            tag = tag >> 1;
-        }
-        else if(tlb_associativity == 4){
-            tag = tag >> 2;
-        }
-    }
-    return tag
+    uint32_t vpn = address >> 12
+
+	// When cache has an index
+	if (associativity != 2){
+		// The index in bits
+		uint32_t idx = log2(set);
+
+		// Right shift till only tag left
+		tag = tag >> idx;
+	}
+
+	return tag;
 }
 uint32_t index_getter(uint32_t pa){
 
 	// offset for 4KB is 12
 	uint32_t offset = 12;
+// The index in bits
+	uint32_t idx = log2(set);
 
+	// Amount of bits in the address
+	uint32_t amountbit = 20;
+
+	// Right shift till only tag left
+	uint32_t tag = pa >> offset;
+
+	// Gets the index from the tag
+	uint32_t index  = tag << (amountbit - idx - offset);
+
+	// Removing the zeroes 
+	index = index / pow(10,(amountbit - idx));
+
+	// Gets the index depending on set
+	index = index % set;
+
+	return index;
 }
