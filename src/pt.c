@@ -180,7 +180,7 @@ void print_pt_entries(){
     printf("\nPage Table Entries (Present-Bit Dirty-Bit PPN)\n");
     for (int i = 0; i < ppow(2,14); i++){
         if (page_table[i].present == 1){
-            printf("%d %d 0x%08x\n");
+            printf("%d %d 0x%08x\n", page_table[i].present,page_table[i].dirty,page_table[i].PPN);
         }
     }
 }
