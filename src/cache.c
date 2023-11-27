@@ -100,7 +100,7 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
 }
 
 // LRU
- void LRU(block_t* Set[],block_t entry)
+ void LRU(block_t* Set,block_t entry)
  {
  	// assign last value the new block
  	Set[set_size-1].tag = entry.tag;
@@ -109,7 +109,7 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
  }
 
  // recently used 
- void recently_used(block_t* Set[],int index)
+ void recently_used(block_t* Set,int index)
  {
  	block_t temp = Set[index];
 
@@ -285,6 +285,7 @@ op_result_t read_from_cache(uint32_t pa)
 			cache[inset][0].valid = 1;
 			cache[inset][0].dirty = 0;
 			read_from_memory(pa);
+			cache_misses++;
 			return MISS;
 		}
 	}
@@ -393,12 +394,7 @@ op_result_t write_to_cache(uint32_t pa)
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_S(int opt, char *optarg)
 {
-	if (opt == 'S'){
-		cache_size = (uint32_t)atoi(optarg);
-		return 0;
-	}
-
-	return -1;
+	
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
