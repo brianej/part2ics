@@ -3,6 +3,7 @@
 #include "tlb.h"
 #include "types.h"
 #include "ll.h"
+#include <math.h>
 
 page_t* free_page_list;
 page_t* used_page_list;

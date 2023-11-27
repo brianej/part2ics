@@ -327,7 +327,7 @@ op_result_t write_to_cache(uint32_t pa)
 		for (uint32_t i = 0; i < set_size; i++){
 			if (cache[inset][i].tag == tag){
 				if (cache[inset][i].valid == 1){
-					if (cache[inset][i].dirty = 0){
+					if (cache[inset][i].dirty == 0){
 						cache[inset][i].dirty = 1;
 					}
 					recently_used(cache[inset],i);

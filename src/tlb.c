@@ -1,5 +1,6 @@
 #include "tlb.h"
 #include <stdlib.h>
+#include <math.h>
 
 // Input parameters to control the tlb.
 uint32_t tlb_entries;
@@ -225,7 +226,7 @@ void print_tlb_entries(){
 	for (int i = 0; i < set; i++){
 		for (int j = 0; j < set_size; j++){
 			if (tlb[i][j].valid == 1){
-            printf("%d %d 0x%08x\n", tlb[i][j].valid,tlb[i][j].dirty,tlb[i][j].VPN,tlb[i][j].PPN);
+            printf("%d %d %d 0x%08x\n", tlb[i][j].valid,tlb[i][j].dirty,tlb[i][j].VPN,tlb[i][j].PPN);
         	}
 		}
     }
