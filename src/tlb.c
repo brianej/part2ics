@@ -232,7 +232,7 @@ int check_tlb(uint32_t address){
 	} else {
 		if ((tlb[inset][0].VPN == vpn) && (tlb[inset][0].valid == 1)){
 			tlb_hits++;
-			return tlb[inset][0].VPN;	
+			return tlb[inset][0].PPN;	
 		}else {
 			tlb_misses++;
 			return -1;
@@ -279,6 +279,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 	// for set associativity
 	} else if (tlb_associativity > 2){
 		for (int j = 0; j < tlb_set_size; j++){
+			// if theres still space to add in
 			if (tlb[idx][j].valid == 0){
 				tlb[idx][j].valid = 1;
 				tlb[idx][j].PPN = PPN;
@@ -286,6 +287,8 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 				tlb[idx][j].dirty = 0;
 				tlb_used_enter(idx,vpn,PPN);
 				tlb_recently_used(idx,vpn);
+				break;
+			// if theres no more space to add
 			}else if((j + 1) == tlb_set_size){
 				for (int k = 0; k < tlb_set_size; k++){
 					if (tlb[idx][k].VPN == victim_vpn){
@@ -300,6 +303,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 				tlb_used[idx][tlb_set_size - 1].VPN = vpn;
 				tlb_used[idx][tlb_set_size - 1].dirty = 0;
 				tlb_recently_used(idx,vpn);
+				break;
 			}
 		}
 	// for fully associative
@@ -314,6 +318,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 					tlb[i][j].dirty = 0;
 					tlb_used_enter(idx,vpn,PPN);
 					tlb_recently_used(idx,j);
+					break;
 				}else if((j + 1) == tlb_set_size){
 					for (int k = 0; k < tlb_set_size; k++){
 						if (tlb[i][k].VPN == victim_vpn){
@@ -328,6 +333,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 					tlb_used[idx][tlb_set_size - 1].VPN = vpn;
 					tlb_used[idx][tlb_set_size - 1].dirty = 0;
 					tlb_recently_used(idx,vpn);
+					break;
 				}
 			}
 		}
