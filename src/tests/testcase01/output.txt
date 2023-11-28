@@ -8,7 +8,7 @@ misses: 1
 * Page Table Statistics *
 total accesses: 1
 page faults: 1
-page faults with a dirty bit: 0
+page faults with dirty bit: 0
 
 * Cache Statistics *
 total accesses: 1

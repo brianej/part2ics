@@ -138,8 +138,7 @@ int main(int argc, char *argv[])
 	// Check if all required parameters are provided
 	ret = check_parameters_valid();
 	if (ret) {
-		printf("One or more required parameters is missing.\n");
-		printf("%s\n", usage_str);
+		printf("Invalid configuration\n");
        
 		return -1;
 	}

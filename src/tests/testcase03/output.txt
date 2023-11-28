@@ -10,7 +10,7 @@ misses: 2
 * Page Table Statistics *
 total accesses: 2
 page faults: 2
-page faults with a dirty bit: 0
+page faults with dirty bit: 0
 
 * Cache Statistics *
 total accesses: 3
