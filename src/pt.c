@@ -20,7 +20,7 @@ int last_used = 0;
 // Gets the tag of the address
 uint32_t vpn_getter(uint32_t pa){
 	// The offset in bits
-	uint32_t offset = 1;
+	uint32_t offset = 12;
 
 	// Right shift till only tag left
 	uint32_t vpn = pa >> offset;
@@ -29,7 +29,7 @@ uint32_t vpn_getter(uint32_t pa){
 }
 
  // recently used 
- void recently_used(uint32_t PPN)
+ void pt_recently_used(uint32_t PPN)
  {
     int index = 0;
 
@@ -111,7 +111,7 @@ int check_page_table(uint32_t address){
 
     // If the valid bit is there
     if (page_table[vpn].present == 1){
-        recently_used(page_table[vpn].PPN);
+        pt_recently_used(page_table[vpn].PPN);
         return page_table[vpn].PPN;
     }else {
         page_table_faults++;
@@ -147,7 +147,7 @@ void update_page_table(uint32_t address, uint32_t PPN){
         add_to_used(PPN,vpn);
     }
 
-    recently_used(PPN);
+    pt_recently_used(PPN);
     insert_or_update_tlb_entry(address, PPN);
 }
 
@@ -158,11 +158,11 @@ void set_dirty_bit_in_page_table(uint32_t address){
 
 // LRU is to be use to find the victim page
 page_t *get_victim_page(){
-    if (page_table[255].dirty == 1){
+    if (used_page_list[255].page_table_entry->dirty == 1){
         page_table_faults_with_dirty_page++;
     }
     // victim page is always at the bottom using our lru
-    return &page_table[255];
+    return &used_page_list[255];
 }
 
 // pops a page from the free page linked-list
@@ -178,10 +178,10 @@ page_t *get_free_page(){
 
 // print pt entries as per the spec
 void print_pt_entries(){
-    printf("\nPage Table Entries (Present-Bit Dirty-Bit PPN)\n");
-    for (int i = 0; i < ppow(2,14); i++){
+    printf("\nPage Table Entries (Present-Bit Dirty-Bit VPN PPN)\n");
+    for (int i = 0; i < pow(2,14); i++){
         if (page_table[i].present == 1){
-            printf("%d %d 0x%08x\n", page_table[i].present,page_table[i].dirty,page_table[i].PPN);
+            printf("%d %d 0x%05x 0x%05x\n", page_table[i].present,page_table[i].dirty,(uint32_t)i,page_table[i].PPN);
         }
     }
 }
@@ -191,5 +191,5 @@ void print_pt_statistics(){
     printf("\n* Page Table Statistics *\n");
     printf("total accesses: %d\n", page_table_total_accesses);
     printf("page faults: %d\n", page_table_faults);
-    printf("page faults with dirty bit: %d\n", page_table_faults_with_dirty_page);
+    printf("page faults with a dirty bit: %d\n", page_table_faults_with_dirty_page);
 }

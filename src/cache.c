@@ -81,20 +81,14 @@ uint32_t index_getter(uint32_t pa, uint32_t set){
 	// The index in bits
 	uint32_t idx = log2(set);
 
-	// Amount of bits in the address
-	uint32_t amountbit = 20;
-
-	// Right shift till only tag left
+	// Right shift till only tag and index left
 	uint32_t tag = pa >> offset;
 
-	// Gets the index from the tag
-	uint32_t index  = tag << (amountbit - idx - offset);
+	// Create a bitmask with the least significant n bits set to 1
+    uint32_t bitmask = (1 << idx) - 1;
 
-	// Removing the zeroes 
-	index = index / pow(10,(amountbit - idx));
-
-	// Gets the index depending on set
-	index = index % set;
+    // Use bitwise AND to extract the last n bits
+    uint32_t index = tag & bitmask;
 
 	return index;
 }
@@ -289,6 +283,8 @@ op_result_t read_from_cache(uint32_t pa)
 			return MISS;
 		}
 	}
+
+	return MISS;
 }
 
 /*
@@ -372,29 +368,36 @@ op_result_t write_to_cache(uint32_t pa)
 	// For associativity == 1
 	}else {
 		if ((cache[inset][0].tag == tag) && (cache[inset][0].valid == 1)){
-			if (cache[inset][0].dirty = 0){
+			if (cache[inset][0].dirty == 0){
 				cache[inset][0].dirty = 1;
 			}
 			cache_hits++;
 			cache_read_hits++;
 			return HIT;	
 		}else {
-			if (cache[inset][0].dirty = 1){
+			if (cache[inset][0].dirty == 1){
 				write_to_memory(pa);
 			}
 			cache[inset][0].tag = tag;
 			cache[inset][0].valid = 1;
 			cache[inset][0].dirty = 1;
+			cache_misses++;
 			return MISS;
 		}
 	}
+	return MISS;
 }
 
 // Process the S parameter properly and initialize `cache_size`.
 // Return 0 when everything is good. Otherwise return -1.
 int process_arg_S(int opt, char *optarg)
 {
-	
+	if (opt == 'S'){
+		cache_size = (uint32_t)atoi(optarg);
+		return 0;
+	}
+
+	return -1;
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
@@ -430,6 +433,7 @@ char* accestype_string(access_t var){
 	}else if(var == INVALID){
 		return "I";
 	}
+	return "Z";
 }
 
 // When verbose is true, print the details of each operation -- MISS or HIT.
@@ -452,19 +456,32 @@ uint32_t power2(uint32_t n) {
 // Return 0 when everything is good. Otherwise return -1.
 int check_cache_parameters_valid()
 {
-	if ((cache_size == 0) || (cache_associativity == 0) ||(cache_block_size == 0)){
+	uint32_t line = cache_size / cache_block_size;
+
+	// Sets how many sets on associativity
+	if (cache_associativity == 3){
+		set_size = 2;
+	} else if(cache_associativity == 4){
+		set_size = 4;
+	} else if(cache_associativity == 1){
+		set_size = 1;
+	} else{
+		set_size = line;
+	}
+
+	if ((cache_size == 0) || (cache_associativity == 0) || (cache_block_size == 0)){
 		return -1;
 	}
 
-	if (power2(cache_size)){
+	if (!(power2(cache_size))){
 		return -1;
 	}
 
-	if ((cache_associativity < 0) || (cache_associativity > 4)){
+	if ((cache_associativity < 1) || (cache_associativity > 4)){
 		return -1;
 	}
 
-	if ((cache_block_size < 4) || (cache_block_size % 4 != 0) || (cache_size % cache_block_size != 0)){
+	if ((cache_block_size < 4) || (cache_block_size % 4 != 0) || (line % set_size != 0)){
 		return -1;
 	}
 

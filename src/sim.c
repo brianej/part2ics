@@ -35,7 +35,13 @@ void handle_verbose(memory_access_entry_t *entry, uint32_t pa)
 {
 	//print the virtual address and the physical address in hex to match the spec
 	//print entry->verbose buffer
-	printf("%d 0x%08x 0x%08x%s", entry->accesstype ,entry->address, pa, entry->verbose);
+	if (entry->accesstype == READ){
+		printf("R 0x%08x 0x%08x%s",entry->address, pa, entry->verbose);
+	}else if(entry->accesstype == WRITE){
+		printf("W 0x%08x 0x%08x%s",entry->address, pa, entry->verbose);
+	}else {
+		printf("%d 0x%08x 0x%08x%s", entry->accesstype ,entry->address, pa, entry->verbose);
+	}
 }
 
 // Check if all input parameters are provided and valid.
