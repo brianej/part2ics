@@ -28,10 +28,6 @@ uint32_t tlb_vpn_getter(uint32_t address)
 	return vpn;
 }
 
-uint32_t power2_tlb(uint32_t n) {
-    return n > 0 && ((int)log2(n) == log2(n));
-}
-
 // gets the index from an address
 uint32_t tlb_index_getter(uint32_t pa){
 
@@ -94,8 +90,13 @@ int check_tlb_parameters_valid()
 		return -1;
 	}
 
+	if ((tlb_associativity < 0) || (tlb_associativity > 4)){
+		return -1;
+	}
 
-
+	if ((tlb_entries < 2)){
+		return -1;
+	}
 
 	return 0;
 }
@@ -323,33 +324,31 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 	// for fully associative
 	} else{
 		// loops throught every tlb entry to see if theres free space, if not replace the last used
-		for (int i = 0; i < tlb_set; i++){
-			for (int j = 0; j < tlb_set_size; j++){
-				if (tlb[i][j].valid == 0){
-					tlb[i][j].valid = 1;
-					tlb[i][j].PPN = PPN;
-					tlb[i][j].VPN = tlb_vpn_getter(address);
-					tlb[i][j].dirty = 0;
-					tlb_used_enter(idx,vpn,PPN);
-					tlb_recently_used(idx,j);
-					break;
-				}else if((j + 1) == tlb_set_size){
-					for (int k = 0; k < tlb_set_size; k++){
-						if (tlb[i][k].VPN == victim_vpn){
-							tlb[idx][k].valid = 1;
-							tlb[idx][k].PPN = PPN;
-							tlb[idx][k].VPN = vpn;
-							tlb[idx][k].dirty = 0;
-							break;
-						}
+		for (int j = 0; j < tlb_set_size; j++){
+			if (tlb[0][j].valid == 0){
+				tlb[0][j].valid = 1;
+				tlb[0][j].PPN = PPN;
+				tlb[0][j].VPN = tlb_vpn_getter(address);
+				tlb[0][j].dirty = 0;
+				tlb_used_enter(idx,vpn,PPN);
+				tlb_recently_used(idx,j);
+				break;
+			}else if((j + 1) == tlb_set_size){
+				for (int k = 0; k < tlb_set_size; k++){
+					if (tlb[0][k].VPN == victim_vpn){
+						tlb[0][k].valid = 1;
+						tlb[0][k].PPN = PPN;
+						tlb[0][k].VPN = vpn;
+						tlb[0][k].dirty = 0;
+						break;
 					}
-					tlb_used[idx][tlb_set_size - 1].valid = 1;
-					tlb_used[idx][tlb_set_size - 1].PPN = PPN;
-					tlb_used[idx][tlb_set_size - 1].VPN = vpn;
-					tlb_used[idx][tlb_set_size - 1].dirty = 0;
-					tlb_recently_used(idx,vpn);
-					break;
 				}
+				tlb_used[0][tlb_set_size - 1].valid = 1;
+				tlb_used[0][tlb_set_size - 1].PPN = PPN;
+				tlb_used[0][tlb_set_size - 1].VPN = vpn;
+				tlb_used[0][tlb_set_size - 1].dirty = 0;
+				tlb_recently_used(idx,vpn);
+				break;
 			}
 		}
 	}
