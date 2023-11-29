@@ -394,10 +394,11 @@ int process_arg_S(int opt, char *optarg)
 {
 	if (opt == 'S'){
 		cache_size = (uint32_t)atoi(optarg);
-		return 0;
+	}else return -1;
+	if (!(power2(cache_size))){
+		return -1;
 	}
-
-	return -1;
+	return 0;
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
@@ -406,10 +407,11 @@ int process_arg_A(int opt, char *optarg)
 {
 	if (opt == 'A'){
 		cache_associativity = (uint32_t)atoi(optarg);
-		return 0;
+	}else return -1;
+	if ((cache_associativity < 1) || (cache_associativity > 4)){
+		return -1;
 	}
-
-	return -1;
+	return 0;
 }
 
 // Process the B parameter properly and initialize `cache_block_size`.
@@ -418,10 +420,11 @@ int process_arg_B(int opt, char *optarg)
 {
 	if (opt == 'B'){
 		cache_block_size = (uint32_t)atoi(optarg);
-		return 0;
+	}else return -1;
+	if((cache_block_size < 4) || (cache_block_size % 4 != 0)){
+		return -1;
 	}
-
-	return -1;
+	return 0;
 }
 
 // Returns string for access type
@@ -473,15 +476,9 @@ int check_cache_parameters_valid()
 		return -1;
 	}
 
-	if (!(power2(cache_size))){
-		return -1;
-	}
 
-	if ((cache_associativity < 1) || (cache_associativity > 4)){
-		return -1;
-	}
 
-	if ((cache_block_size < 4) || (cache_block_size % 4 != 0) || (line % set_size != 0)){
+	if ((line % set_size != 0)){
 		return -1;
 	}
 
