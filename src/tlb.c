@@ -16,6 +16,10 @@ tlb_entry_t** tlb_used;
 uint32_t tlb_set_size;
 uint32_t tlb_set;
 
+uint32_t power2_tlb(uint32_t n) {
+    return n > 0 && ((int)log2(n) == log2(n));
+}
+
 // gets the vpn from an address
 uint32_t tlb_vpn_getter(uint32_t address)
 {
@@ -58,8 +62,8 @@ void tlb_used_enter(uint32_t set,uint32_t vpn,uint32_t ppn){
 }
 
  // recently used 
- void tlb_recently_used(uint32_t set,uint32_t vpn)
- {
+void tlb_recently_used(uint32_t set,uint32_t vpn)
+{
 	uint32_t index;
 
 	for (int i = 0; i < tlb_set_size; i++){
@@ -75,8 +79,8 @@ void tlb_used_enter(uint32_t set,uint32_t vpn,uint32_t ppn){
  		tlb_used[set][i]= tlb_used[set][i-1];
  	}
 
- 	tlb_used[set][0] = temp;
- }
+ 	tlb_used[set][0] = temp; 
+}
 
 // Check if all the necessary paramaters for the tlb are provided and valid.
 // Return 0 when everything is good. Otherwise return -1.
@@ -162,10 +166,17 @@ int process_arg_T(int opt, char *optarg)
 {
     if (opt == 'T'){
 		tlb_entries = (uint32_t)atoi(optarg);
-		return 0;
-	}
+	} else return -1;
 
-	return -1;
+ 	if ((tlb_entries < 2)){
+ 		return -1;
+ 	}
+
+ 	if (!(power2_tlb(tlb_entries))){
+ 		return -1;
+ 	}
+
+ 	return 0;
 }
 
 // Process the A parameter properly and initialize `tlb_associativity`.
@@ -174,10 +185,13 @@ int process_arg_L(int opt, char *optarg)
 {
     if (opt == 'L'){
 		tlb_associativity = (uint32_t)atoi(optarg);
-		return 0;
-	}
+	}  else return -1;
+	
+ 	if ((tlb_associativity < 0) || (tlb_associativity > 4)){
+ 		return -1;
+ 	}
 
-	return -1;
+ 	return 0;
 }
 
 // Check if the tlb hit or miss.
@@ -296,6 +310,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 						tlb[idx][k].PPN = PPN;
 						tlb[idx][k].VPN = vpn;
 						tlb[idx][k].dirty = 0;
+						break;
 					}
 				}
 				tlb_used[idx][tlb_set_size - 1].valid = 1;
@@ -326,6 +341,7 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 							tlb[idx][k].PPN = PPN;
 							tlb[idx][k].VPN = vpn;
 							tlb[idx][k].dirty = 0;
+							break;
 						}
 					}
 					tlb_used[idx][tlb_set_size - 1].valid = 1;

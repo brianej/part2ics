@@ -139,7 +139,6 @@ int main(int argc, char *argv[])
 	ret = check_parameters_valid();
 	if (ret) {
 		printf("Invalid configuration\n");
-       
 		return -1;
 	}
 

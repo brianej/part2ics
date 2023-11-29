@@ -192,5 +192,5 @@ void print_pt_statistics(){
     printf("\n* Page Table Statistics *\n");
     printf("total accesses: %d\n", page_table_total_accesses);
     printf("page faults: %d\n", page_table_faults);
-    printf("page faults with a dirty bit: %d\n", page_table_faults_with_dirty_page);
+    printf("page faults with dirty bit: %d\n", page_table_faults_with_dirty_page);
 }

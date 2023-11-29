@@ -52,6 +52,11 @@ int write_to_memory(uint32_t pa)
  *********************************************************
 */
 
+
+uint32_t power2(uint32_t n) {
+    return n > 0 && ((int)log2(n) == log2(n));
+}
+
 // Gets the tag of the address
 uint32_t tag_getter(uint32_t pa, uint32_t associativity){
 	// The offset in bits
@@ -166,10 +171,8 @@ void initialize_cache()
  */
 void free_cache()
 {
-	uint32_t line = cache_size / cache_block_size;
-
 	// Frees each of the double pointer
-	for (int i = 0; i < line; i++) {
+	for (int i = 0; i < set; i++) {
         free(cache[i]);
     }
 
@@ -327,6 +330,7 @@ op_result_t write_to_cache(uint32_t pa)
 						cache[inset][i].dirty = 1;
 					}
 					recently_used(cache[inset],i);
+					cache_hits++;
 					cache_write_hits++;
 					return HIT;
 				// Find empty spot to write it into cache
@@ -394,10 +398,13 @@ int process_arg_S(int opt, char *optarg)
 {
 	if (opt == 'S'){
 		cache_size = (uint32_t)atoi(optarg);
-		return 0;
+	}else return -1;
+
+	if (!(power2(cache_size))){
+		return -1;
 	}
 
-	return -1;
+	return 0;
 }
 
 // Process the A parameter properly and initialize `cache_associativity`.
@@ -406,10 +413,12 @@ int process_arg_A(int opt, char *optarg)
 {
 	if (opt == 'A'){
 		cache_associativity = (uint32_t)atoi(optarg);
-		return 0;
-	}
+	}else return -1;
 
-	return -1;
+	if ((cache_associativity < 1) || (cache_associativity > 4)){
+		return -1;
+	}
+	return 0;
 }
 
 // Process the B parameter properly and initialize `cache_block_size`.
@@ -418,10 +427,13 @@ int process_arg_B(int opt, char *optarg)
 {
 	if (opt == 'B'){
 		cache_block_size = (uint32_t)atoi(optarg);
-		return 0;
-	}
+	}else return -1;
 
-	return -1;
+	if((cache_block_size < 4) || (cache_block_size % 4 != 0)){
+		return -1;
+	}
+	
+	return 0;
 }
 
 // Returns string for access type
@@ -446,10 +458,6 @@ void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
-}
-
-uint32_t power2(uint32_t n) {
-    return n > 0 && ((int)log2(n) == log2(n));
 }
 
 // Check if all the necessary paramaters for the cache are provided and valid.
