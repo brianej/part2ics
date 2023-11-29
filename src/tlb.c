@@ -28,6 +28,10 @@ uint32_t tlb_vpn_getter(uint32_t address)
 	return vpn;
 }
 
+uint32_t power2_tlb(uint32_t n) {
+    return n > 0 && ((int)log2(n) == log2(n));
+}
+
 // gets the index from an address
 uint32_t tlb_index_getter(uint32_t pa){
 
@@ -90,13 +94,8 @@ int check_tlb_parameters_valid()
 		return -1;
 	}
 
-	if ((tlb_associativity < 0) || (tlb_associativity > 4)){
-		return -1;
-	}
 
-	if ((tlb_entries < 2)){
-		return -1;
-	}
+
 
 	return 0;
 }
