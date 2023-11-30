@@ -414,6 +414,7 @@ int process_arg_A(int opt, char *optarg)
 	if (opt == 'A'){
 		cache_associativity = (uint32_t)atoi(optarg);
 	}else return -1;
+
 	if ((cache_associativity < 1) || (cache_associativity > 4)){
 		return -1;
 	}
@@ -451,9 +452,9 @@ char* accestype_string(access_t var){
 void handle_cache_verbose(memory_access_entry_t entry, op_result_t ret)
 {
 	if (ret == MISS){
-		printf(accestype_string(entry.accesstype),entry.address,"CACHE-MISS");
+		printf("%s 0x%08x MISS\n",accestype_string(entry.accesstype),entry.address);
 	} else if(ret == HIT){
-		printf(accestype_string(entry.accesstype),entry.address,"CACHE-HIT");
+		printf("%s 0x%08x HIT\n",accestype_string(entry.accesstype),entry.address);
 	}else if(ret == ERROR) {
 		printf("This message should not be printed. Fix your code\n");
 	}
@@ -480,9 +481,15 @@ int check_cache_parameters_valid()
 		return -1;
 	}
 
+	if (!(power2(cache_size))){
+		return -1;
+	}
 
+	if ((cache_associativity < 1) || (cache_associativity > 4)){
+		return -1;
+	}
 
-	if ((line % set_size != 0)){
+	if ((cache_block_size < 4) || (cache_block_size % 4 != 0) || (line % set_size != 0)){
 		return -1;
 	}
 

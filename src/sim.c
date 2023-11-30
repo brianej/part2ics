@@ -150,11 +150,14 @@ int main(int argc, char *argv[])
 	// Read the trace file, one line at a time.
 	while (1) {
 		ret = INVALID;
+		uint32_t max_address = 67108863;
 		process_trace_file_line(trace_fp, entry);
 
 		// Break if end of file is reached.
-		if (entry->address == -1) {
+		if (entry->address == -1){
 			break;
+		}else if(entry->address > max_address){
+			continue;
 		}
 
 		// only translate if valid

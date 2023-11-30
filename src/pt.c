@@ -115,7 +115,7 @@ int check_page_table(uint32_t address){
         return page_table[vpn].PPN;
     }else {
         page_table_faults++;
-       return -1;
+        return -1;
     }
 }
 

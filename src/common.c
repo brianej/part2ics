@@ -77,8 +77,8 @@ uint32_t translate_address(memory_access_entry_t *entry){
 					victim_page->page_table_entry->dirty = 0;
 				}
 				dummy_read_page_from_disk(victim_page->data, dummy_disk_block);
-				update_page_table(entry->address, victim_page->ppn);
 				PPN = victim_page->ppn;
+				update_page_table(entry->address, victim_page->ppn);
 			}
 		}
 	}

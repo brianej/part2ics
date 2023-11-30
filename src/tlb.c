@@ -15,6 +15,7 @@ tlb_entry_t** tlb;
 tlb_entry_t** tlb_used;
 uint32_t tlb_set_size;
 uint32_t tlb_set;
+int lru_used = 0;
 
 uint32_t power2_tlb(uint32_t n) {
     return n > 0 && ((int)log2(n) == log2(n));
@@ -49,22 +50,10 @@ uint32_t tlb_index_getter(uint32_t pa){
 	return index;
 }
 
-// enters new address into the tlb when there is still space
-void tlb_used_enter(uint32_t set,uint32_t vpn,uint32_t ppn){
-	for (int i = 0; i < tlb_set; i++){
-		if (tlb_used[set][i].valid == 0){
-			tlb_used[set][i].valid = 1;
-			tlb_used[set][i].PPN = ppn;
-			tlb_used[set][i].VPN = vpn;
-			tlb_used[set][i].dirty = 0;
-		}
-	}
-}
-
  // recently used 
 void tlb_recently_used(uint32_t set,uint32_t vpn)
 {
-	uint32_t index;
+	uint32_t index = 0;
 
 	for (int i = 0; i < tlb_set_size; i++){
 		if (tlb_used[set][i].VPN == vpn){
@@ -80,6 +69,21 @@ void tlb_recently_used(uint32_t set,uint32_t vpn)
  	}
 
  	tlb_used[set][0] = temp; 
+}
+
+// enters new address into the tlb when there is still space
+int tlb_used_enter(uint32_t set,uint32_t vpn,uint32_t ppn){
+	for (int i = 0; i < tlb_set_size; i++){
+		if (tlb_used[set][i].valid == 0){
+			tlb_used[set][i].valid = 1;
+			tlb_used[set][i].PPN = ppn;
+			tlb_used[set][i].VPN = vpn;
+			tlb_used[set][i].dirty = 0;
+			tlb_recently_used(set,vpn);
+			return 0;
+		}
+	}
+	return -1;
 }
 
 // Check if all the necessary paramaters for the tlb are provided and valid.
@@ -266,10 +270,22 @@ void set_dirty_bit_in_tlb(uint32_t address){
 				tlb[index][i].dirty = 1;
 			}
 		}
+
+		for (int i = 0; i < tlb_set_size; i++){
+			if (tlb_used[index][i].VPN == vpn){
+				tlb_used[index][i].dirty = 1;
+			}
+		}
 	}else {
 		for (int i = 0; i < tlb_set_size; i++){
 			if (tlb[0][i].VPN == tlb_vpn_getter(address)){
 				tlb[0][i].dirty = 1;
+			}
+		}
+
+		for (int i = 0; i < tlb_set_size; i++){
+			if (tlb_used[0][i].VPN == tlb_vpn_getter(address)){
+				tlb_used[0][i].dirty = 1;
 			}
 		}
 	}
@@ -300,7 +316,6 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 				tlb[idx][j].VPN = vpn;
 				tlb[idx][j].dirty = 0;
 				tlb_used_enter(idx,vpn,PPN);
-				tlb_recently_used(idx,vpn);
 				break;
 			// if theres no more space to add
 			}else if((j + 1) == tlb_set_size){
@@ -317,21 +332,21 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 				tlb_used[idx][tlb_set_size - 1].PPN = PPN;
 				tlb_used[idx][tlb_set_size - 1].VPN = vpn;
 				tlb_used[idx][tlb_set_size - 1].dirty = 0;
+				lru_used = 1;
 				tlb_recently_used(idx,vpn);
 				break;
 			}
 		}
 	// for fully associative
-	} else{
+	} else if (tlb_associativity == 2){
 		// loops throught every tlb entry to see if theres free space, if not replace the last used
 		for (int j = 0; j < tlb_set_size; j++){
 			if (tlb[0][j].valid == 0){
 				tlb[0][j].valid = 1;
 				tlb[0][j].PPN = PPN;
-				tlb[0][j].VPN = tlb_vpn_getter(address);
+				tlb[0][j].VPN = vpn;
 				tlb[0][j].dirty = 0;
-				tlb_used_enter(idx,vpn,PPN);
-				tlb_recently_used(idx,j);
+				tlb_used_enter(0,vpn,PPN);
 				break;
 			}else if((j + 1) == tlb_set_size){
 				for (int k = 0; k < tlb_set_size; k++){
@@ -347,7 +362,8 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 				tlb_used[0][tlb_set_size - 1].PPN = PPN;
 				tlb_used[0][tlb_set_size - 1].VPN = vpn;
 				tlb_used[0][tlb_set_size - 1].dirty = 0;
-				tlb_recently_used(idx,vpn);
+				tlb_recently_used(0,vpn);
+				lru_used = 1;
 				break;
 			}
 		}
@@ -358,15 +374,51 @@ void insert_or_update_tlb_entry(uint32_t address, uint32_t PPN){
 void print_tlb_entries(){
     //print the tlb entries
 	printf("\nTLB Entries (Valid-Bit Dirty-Bit VPN PPN)\n");
-	for (int i = 0; i < tlb_set; i++){
-		for (int j = 0; j < tlb_set_size; j++){
-			if (tlb[i][j].valid == 1){
-            	printf("%d %d 0x%05x 0x%05x\n", tlb[i][j].valid,tlb[i][j].dirty,tlb[i][j].VPN,tlb[i][j].PPN);
-        	}else{
-				printf("0 0 - -\n");
-			}
+	if (tlb_associativity == 1){
+		for (int i = 0; i < tlb_set; i++){
+			for (int j = 0; j < tlb_set_size; j++){
+				if (tlb[i][j].valid == 1){
+            		printf("%d %d 0x%05x 0x%05x\n", tlb[i][j].valid,tlb[i][j].dirty,tlb[i][j].VPN,tlb[i][j].PPN);
+				}else{
+					printf("0 0 - -\n");
+				}
+			}	
+   		}
+
+	}else if(tlb_associativity == 2){
+		if (lru_used){
+			for (int i = 0; i < tlb_set; i++){
+				for (int j = tlb_set_size - 1; j >= 0; j--){
+					if (tlb_used[i][j].valid == 1){
+            			printf("%d %d 0x%05x 0x%05x\n", tlb_used[i][j].valid,tlb_used[i][j].dirty,tlb_used[i][j].VPN,tlb_used[i][j].PPN);
+					}else{
+						printf("0 0 - -\n");
+					}
+				}	
+   			}
+		}else{
+			for (int i = 0; i < tlb_set; i++){
+				for (int j = 0; j < tlb_set_size; j++){
+					if (tlb[i][j].valid == 1){
+            			printf("%d %d 0x%05x 0x%05x\n", tlb[i][j].valid,tlb[i][j].dirty,tlb[i][j].VPN,tlb[i][j].PPN);
+					}else{
+						printf("0 0 - -\n");
+					}
+				}	
+   			}
 		}
-    }
+
+	}else {
+		for (int i = 0; i < tlb_set; i++){
+			for (int j = tlb_set_size - 1; j >= 0; j--){
+				if (tlb_used[i][j].valid == 1){
+            		printf("%d %d 0x%05x 0x%05x\n", tlb_used[i][j].valid,tlb_used[i][j].dirty,tlb_used[i][j].VPN,tlb_used[i][j].PPN);
+        		}else{
+					printf("0 0 - -\n");
+				}
+			}
+    	}
+	}	
 }
 
 // print tlb statistics as per the spec
